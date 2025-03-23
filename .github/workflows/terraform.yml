@@ -72,8 +72,10 @@ jobs:
       - name: Terraform Plan
         id: plan
         run: |
-          terraform -chdir=terraform plan -var-file=../environments/${{ matrix.environment }}/terraform.tfvars -no-color \
-            -out=tfplan_${{ matrix.environment }}.binary > plan_output.txt || echo "Plan failed" >> plan_output.txt
+          terraform plan \
+             -var-file=../environments/${{ matrix.environment }}/terraform.tfvars \
+             -out=tfplan_${{ matrix.environment }}.binary
+          terraform show -no-color tfplan_${{ matrix.environment }}.binary > modules/s3/plan_output_${{ matrix.environment }}.txt
         working-directory: .
 
       - name: PR 코멘트에 Plan 결과 출력
@@ -91,4 +93,4 @@ jobs:
               repo: context.repo.repo,
               body: `📌 **Terraform Plan 결과 (${env})**\n\n\`\`\`\n${output}\n\`\`\``
             });
-     
+          

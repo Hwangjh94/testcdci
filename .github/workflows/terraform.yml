@@ -71,8 +71,9 @@ jobs:
         id: plan
         run: |
           terraform plan -var-file=environments/${{ matrix.environment }}/terraform.tfvars -no-color \
-            -out=tfplan_${{ matrix.environment }}.binary > plan_output.txt || echo "Plan failed" >> plan_output.txt
+            -out=tfplan_${{ matrix.environment }}.binary > terraform/plan_output_${{ matrix.environment }}.txt || echo "Plan failed" >> terraform/plan_output_${{ matrix.environment }}.txt
         working-directory: .
+      
 
       - name: PR 코멘트에 Plan 결과 출력
         if: github.event_name == 'pull_request'
@@ -82,10 +83,10 @@ jobs:
           script: |
             const fs = require('fs');
             const env = '${{ matrix.environment }}';
-            const output = fs.readFileSync('plan_output.txt', 'utf8');
+            const output = fs.readFileSync(`terraform/plan_output_${env}.txt`, 'utf8');
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `📌 **Terraform Plan 결과 (${env})**\n\n\u0060\u0060\u0060\n${output}\n\u0060\u0060\u0060`
-            });     
+              body: `📌 **Terraform Plan 결과 (${env})**\n\n\`\`\`\n${output}\n\`\`\``
+            });  

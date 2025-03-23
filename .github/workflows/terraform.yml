@@ -72,10 +72,9 @@ jobs:
       - name: Terraform Plan
         id: plan
         run: |
-          terraform plan \
-            -var-file=../environments/${{ matrix.environment }}/terraform.tfvars \
-            -out=tfplan_${{ matrix.environment }}.binary
-        working-directory: modules/s3
+          terraform -chdir=terraform plan -var-file=../environments/${{ matrix.environment }}/terraform.tfvars -no-color \
+            -out=tfplan_${{ matrix.environment }}.binary > plan_output.txt || echo "Plan failed" >> plan_output.txt
+        working-directory: .
 
       - name: PR 코멘트에 Plan 결과 출력
         if: github.event_name == 'pull_request'

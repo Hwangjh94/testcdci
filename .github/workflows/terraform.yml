@@ -24,12 +24,12 @@ jobs:
       - name: tfsec scan
         uses: aquasecurity/tfsec-action@v1.0.0
         with:
-          working_directory: .
+          working_directory: modules/s3
 
       - name: checkov scan (NIST 등급화 포함)
         uses: bridgecrewio/checkov-action@master
         with:
-          directory: .
+          directory: modules/s3
           quiet: true
           output_format: cli
         continue-on-error: false  # 보안 이슈 발견 시 워크플로우 실패 → PR 차단
@@ -37,6 +37,7 @@ jobs:
   terraform:
     name: Terraform Plan + PR 댓글
     needs: security
+    if: always()
     runs-on: ubuntu-latest
 
     strategy:
@@ -70,7 +71,7 @@ jobs:
         id: plan
         run: |
           terraform plan -var-file=environments/${{ matrix.environment }}/terraform.tfvars -no-color \
-            -out=tfplan_${{ matrix.environment }}.binary > plan_output.txt || echo "Plan failed" > plan_output.txt
+            -out=tfplan_${{ matrix.environment }}.binary > plan_output.txt || echo "Plan failed" >> plan_output.txt
         working-directory: .
 
       - name: PR 코멘트에 Plan 결과 출력
@@ -80,10 +81,11 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
+            const env = '${{ matrix.environment }}';
             const output = fs.readFileSync('plan_output.txt', 'utf8');
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `📌 **Terraform Plan 결과 (${process.env.environment})**\n\`\`\`\n${output}\n\`\`\``
+              body: `📌 **Terraform Plan 결과 (${env})**\n\n\u0060\u0060\u0060\n${output}\n\u0060\u0060\u0060`
             });

@@ -61,7 +61,7 @@ resource "aws_s3_bucket_replication_configuration" "this" {
 resource "aws_s3_bucket" "replica_bucket" {
   count  = var.enable_replication ? 1 : 0
   bucket = "${var.bucket_name}-replica"
-  tags   = var.tags
+  tags2   = var.tags
   provider = aws.replica_region
 }
 

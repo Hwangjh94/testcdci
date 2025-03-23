@@ -65,7 +65,7 @@ jobs:
 
       - name: Terraform Validate
         run: terraform validate
-        working-directory: .
+        working-directory: . 
 
       - name: Terraform Plan
         id: plan

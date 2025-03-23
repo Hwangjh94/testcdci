@@ -57,8 +57,9 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: GitHubActionsSession
           aws-region: ${{ secrets.AWS_REGION }}
-
+          
       - name: Terraform Init
         run: terraform init -backend-config=environments/${{ matrix.environment }}/backend.tf
         working-directory: terraform

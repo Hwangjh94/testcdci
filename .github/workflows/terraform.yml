@@ -12,7 +12,7 @@ permissions:
   contents: read
   pull-requests: write
   id-token: write  
-  
+
 jobs:
   security:
     name: Security Scan
@@ -63,18 +63,18 @@ jobs:
 
       - name: Terraform Init
         run: terraform init -backend-config=environments/${{ matrix.environment }}/backend.tf
-        working-directory: terraform
+        working-directory: .
 
       - name: Terraform Validate
         run: terraform validate
-        working-directory: terraform
+        working-directory: .
 
       - name: Terraform Plan
         id: plan
         run: |
           terraform plan -var-file=environments/${{ matrix.environment }}/terraform.tfvars -no-color \
             -out=tfplan_${{ matrix.environment }}.binary > plan_output.txt || echo "Plan failed" >> plan_output.txt
-        working-directory: terraform
+        working-directory: .
 
       - name: PR 코멘트에 Plan 결과 출력
         if: github.event_name == 'pull_request'

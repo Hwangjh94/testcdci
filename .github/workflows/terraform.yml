@@ -72,9 +72,9 @@ jobs:
       - name: Terraform Plan
         id: plan
         run: |
-          terraform plan -var-file=environments/${{ matrix.environment }}/terraform.tfvars -no-color \
+          terraform plan \
+            -var-file=../environments/${{ matrix.environment }}/terraform.tfvars \
             -out=tfplan_${{ matrix.environment }}.binary
-          terraform show -no-color tfplan_${{ matrix.environment }}.binary > plan_output_${{ matrix.environment }}.txt
         working-directory: modules/s3
 
       - name: PR 코멘트에 Plan 결과 출력

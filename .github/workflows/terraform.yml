@@ -62,12 +62,12 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Terraform Init
-        run: terraform init -backend-config=environments/${{ matrix.environment }}/backend.tf
-        working-directory: .
+        run: terraform init -backend-config=../../environments/${{ matrix.environment }}/backend.tf
+        working-directory: modules/s3
 
       - name: Terraform Validate
         run: terraform validate
-        working-directory: .
+        working-directory: modules/s3
 
       - name: Terraform Plan
         id: plan
@@ -75,7 +75,7 @@ jobs:
           terraform plan -var-file=environments/${{ matrix.environment }}/terraform.tfvars -no-color \
             -out=tfplan_${{ matrix.environment }}.binary
           terraform show -no-color tfplan_${{ matrix.environment }}.binary > plan_output_${{ matrix.environment }}.txt
-        working-directory: .
+        working-directory: modules/s3
 
       - name: PR 코멘트에 Plan 결과 출력
         if: github.event_name == 'pull_request'
@@ -85,7 +85,7 @@ jobs:
           script: |
             const fs = require('fs');
             const env = '${{ matrix.environment }}';
-            const output = fs.readFileSync(`plan_output_${env}.txt`, 'utf8');
+            const output = fs.readFileSync(`modules/s3/plan_output_${env}.txt`, 'utf8');
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,

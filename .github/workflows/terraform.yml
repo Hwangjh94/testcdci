@@ -1,61 +1,95 @@
-# GitHub Actions workflow with PR block + scan + plan
-name: "Terraform Workflow"
+name: "Terraform Secure CI/CD"
 
 on:
   pull_request:
     branches: [ main, develop ]
+    paths:
+      - 'modules/**'
+      - 'environments/**'
+      - '.github/workflows/**'
 
 permissions:
   contents: read
   pull-requests: write
+  id-token: write  
 
 jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: tfsec
+      - name: tfsec scan
         uses: aquasecurity/tfsec-action@v1.0.0
         with:
-          working_directory: terraform
+          working_directory: modules/s3
 
-      - name: checkov
+      - name: checkov scan (NIST 등급화 포함)
         uses: bridgecrewio/checkov-action@master
         with:
-          directory: terraform
-          framework: terraform
+          directory: modules/s3
           quiet: true
+          output_format: cli
+        continue-on-error: false
 
   terraform:
-    name: Terraform Plan + Approve
+    name: Terraform Plan + PR 댓글
     needs: security
+    if: always()
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
         environment: [dev, prod]
-    steps:
-      - uses: actions/checkout@v3
 
-      - uses: hashicorp/setup-terraform@v2
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.3.0
 
-      - name: AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v2
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-northeast-2
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: GitHubActionsSession
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Terraform Init
-        run: terraform init -backend-config=environments/${{ matrix.environment }}/backend.tf
-        working-directory: terraform
+        run: terraform init
+        working-directory: modules/s3
+
+      - name: Terraform Validate
+        run: terraform validate
+        working-directory: modules/s3
 
       - name: Terraform Plan
+        id: plan
         run: |
-          terraform plan -var-file=environments/${{ matrix.environment }}/terraform.tfvars \
-            -out=tfplan_${{ matrix.environment }}.binary
-        working-directory: terraform
+          terraform plan \
+             -var-file=../../environments/${{ matrix.environment }}/terraform.tfvars \
+             -out=tfplan_${{ matrix.environment }}.binary
+          terraform show -no-color tfplan_${{ matrix.environment }}.binary > plan_output_${{ matrix.environment }}.txt
+        working-directory: modules/s3
+
+      - name: PR 코멘트에 Plan 결과 출력
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const env = '${{ matrix.environment }}';
+            const output = fs.readFileSync(`modules/s3/plan_output_${env}.txt`, 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `📌 **Terraform Plan 결과 (${env})**\n\n\`\`\`\n${output}\n\`\`\``
+            });

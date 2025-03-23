@@ -2,6 +2,8 @@ bucket_name = "secure-dev-bucket"
 replica_region = "us-west-2"
 replication_role_arn = "arn:aws:iam::123456789012:role/replication-role"
 
+
+
 # modules/s3/main.tf
 
 resource "aws_s3_bucket" "this" {
@@ -91,3 +93,4 @@ resource "aws_config_config_rule" "s3_public_block" {
     source_identifier = "S3_BUCKET_PUBLIC_READ_PROHIBITED"
   }
 }
+

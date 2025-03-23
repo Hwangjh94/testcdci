@@ -11,7 +11,7 @@ on:
 permissions:
   contents: read
   pull-requests: write
-  id-token: write  
+  id-token: write  # OIDC 인증용
 
 jobs:
   security:
@@ -33,10 +33,10 @@ jobs:
           directory: modules/s3
           quiet: true
           output_format: cli
-        continue-on-error: false
+        continue-on-error: false  # 🚫 보안 이슈 발생 시 PR 차단
 
   terraform:
-    name: Terraform Plan + PR 댓글
+    name: Terraform Plan + PR 코멘트
     needs: security
     if: always()
     runs-on: ubuntu-latest
@@ -73,8 +73,9 @@ jobs:
         id: plan
         run: |
           terraform plan \
-             -var-file=../../environments/${{ matrix.environment }}/terraform.tfvars \
-             -out=tfplan_${{ matrix.environment }}.binary
+            -var-file=../../environments/${{ matrix.environment }}/terraform.tfvars \
+            -out=tfplan_${{ matrix.environment }}.binary
+
           terraform show -no-color tfplan_${{ matrix.environment }}.binary > plan_output_${{ matrix.environment }}.txt
         working-directory: modules/s3
 
